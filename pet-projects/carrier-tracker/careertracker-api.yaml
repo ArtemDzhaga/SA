@@ -587,7 +587,7 @@ paths:
             type: integer
       responses:
         '204':
-          description: заказ удален #не дает удалять карточки с доски фриланса
+          description: заказ удален #система не дает удалять карточки с доски фриланса
         '500':
           description: внутренняя ошибка сервера
 
@@ -674,7 +674,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateCard'
-                #момент в том, что в этом запросе нет Achievements даже несмотря на то, что параметр необязательный
         '401':
           description: ошибка авторизации пользователя
           content:
@@ -823,7 +822,7 @@ paths:
         - user
       description:  Курс и когорта пользователя
       parameters:
-        - name: course_id #протестировать другие параметры
+        - name: course_id
           in: query
           description: id курса
           required: true
@@ -1276,8 +1275,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Report'
 
-  #/api/v1/reports/get_last_report_stats: #не нашла откуда оно в итоге))
-
   /api/v1/realtime-notification/showed_list:
     get:
       tags:
@@ -1441,7 +1438,8 @@ paths:
                   url_description": ""
 
   
-  #будет что-то с "записаться на собеседование" или "запись на консультацию"????
+  # Здесь должны быть "записаться на тренировочное собеседование" и "запись на карьерную консультацию", 
+  # но у нашей команды ограничен доступ к данному функционалу
   /api/v1/vacancies/get_stats:
     get:
       description: Статистика воронки пользователя
@@ -2063,7 +2061,7 @@ components:
         gender: 
           type: string
           example: "male"
-        city: #сделать отдельную схему везде где есть сити
+        city:
           type: object
           properties:
             id:
