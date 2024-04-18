@@ -1,7 +1,7 @@
 openapi: '3.0.3'
 info:
   title: Yandex Practicum Career Tracker API
-  version: '1.0.0'
+  version: '1.0.6'
 servers:
   - url: https://api.server.test/
 tags:
@@ -35,7 +35,8 @@ tags:
     description: всё про получение оффера 
   - name: vacation
     description: отпуск
-
+  - name: workshop
+    description: мастерская проектов 
 
 paths:
   /api/v1/token:
@@ -1437,7 +1438,62 @@ paths:
                   url": ""
                   url_description": ""
 
-  
+      /api/v1/consultations:
+        post:
+          description:  Cоздание новой записи на консультацию
+          tags:
+            - metrics
+          responses:
+            '201':
+              description: Успешное создание записи на консультацию
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      status:
+                        type: string
+                  example:
+                    id: 143
+                    consultation_theme: 3
+                    problem_description: "папрорпавапро"
+
+      /api/v1/consultations/themes:
+        get:
+          description: Получение списка тем консультаций, доступных пользователю
+          tags:
+            - metrics
+          responses:
+            '200':
+              description: Успешное отображение тем консультаций
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      status:
+                        type: string
+                  example:
+                      id: 1
+                      name: "Стратегия поиска"
+        
+      /api/v1/interviews:
+        post:
+          description: Cоздание новой записи на собеседование
+          tags:
+            - metrics
+          responses:
+            '201':
+              description: Успешное создание записи на собеседование
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      status:
+                        type: string
+                  example:
+                    id: 77
+                    profile_id: "35632f1d-3196-44d5-87cc-1bc7b439e0e5"
+                    interviewer_type: 1
+
   # Здесь должны быть "записаться на тренировочное собеседование" и "запись на карьерную консультацию", 
   # но у нашей команды ограничен доступ к данному функционалу
   /api/v1/vacancies/get_stats:
@@ -1954,22 +2010,261 @@ paths:
 
     /api/v1/work/directory/workshop-usability:
       get: 
-      tags:
-        - offer
-      description: Оценка баллами пользы от Мастерской
-      responses:
-        '200':
-          description: Баллы оценки пользы Мастерской отражены корректно
+        tags:
+          - offer
+        description: Оценка баллами пользы от Мастерской
+        responses:
+          '200':
+            description: Баллы оценки пользы Мастерской отражены корректно
+            content:
+              application/json:
+                schema:
+                  properties:
+                    status:
+                      type: string
+                example:
+                  id: 1
+                  answer: "1 (совсем оказался бесполезным)"
+
+    /api/v1/workshop/terms-of-use-text/latest:
+      get:
+        tags:   
+         - notifications
+        description: Уведомление при первом знакомстве с Мастерской
+        requestBody:
+          required: true
           content:
             application/json:
               schema:
-                properties:
-                  status:
-                    type: string
-              example:
-                id: 1
-                answer: "1 (совсем оказался бесполезным)"
+                $ref: '#/components/schemas/Notification'
+        responses:
+          '200':
+            description: Уведомление показано пользователю
+            content:
+              application/json:
+                schema:
+                  properties:
+                    status:
+                      type: string
+                example:
+                  id: 1
+                  text: "<p>Привет!</p>\r\n\r\n<p>Теперь в Трекере есть Мастерская! И откликаться на проекты стало легче.</p>\r\n\r\n<p>Вот что будет тут происходить: Теперь при нажатии в меню на вкладку “Мастерская” видны все проекты, на которые можно откликнуться.</p>\r\n\r\n<p>После отклика на проект, придёт ответ-уведомление:</p>\r\n\r\n<p><b>✓</b> Если вас принимают на проект → вам придёт ссылка на подключение в общее пространство команды или telegram-чат.</p>\r\n\r\n<p><b>✕</b> Если вам отказывают → вы увидите информацию об этом в уведомлениях.</p>\r\n\r\n<p><b>Обрати внимание</b>, отклик нельзя отозвать! Но если это нужно сделать, напишите в поддержку. </p>"
+                  created_at: "2023-05-22T09:07:10.551698Z"
+                  confidential_url: "https://yandex.ru/legal/confidential/"
                 
+      /api/v1/directory/workshop/project-time-load:
+        get:
+          tags: 
+            - workshop  
+          description: Получение информации о времени загрузки проектов в мастерской
+          responses:
+            '200':
+              description: Время загрузки проекта отражено корректно
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      status:
+                        type: integer
+                  example:
+                    pk: 1
+                    min: 1
+                    max: 3
+
+      /api/v1/workshop/project/show_projects_for_student:
+        get:
+          tags:
+            - workshop
+          description: Получение списка проектов, доступных студенту, в заданном временном интервале
+          parameters:
+            - name: start_date
+              in: query
+              required: true
+              description: Дата начала периода
+              schema:
+                type: string
+                format: date
+            - name: end_date
+              in: query
+              required: true
+              description: Дата окончания периода
+              schema:
+                type: string
+                format: date
+            - name: limit
+              in: query
+              required: false
+              default: 16
+              description: Количество элементов на странице
+              schema:
+                type: integer
+            - name: page
+              in: query
+              required: false
+              default: 1
+              description: Номер страницы
+              schema:
+                type: integer
+          responses:
+            '200':
+              description: |
+                - Список проектов успешно показан (если проекты найдены).
+                - Список проектов пуст (если проекты не найдены).
+              content:
+                application/json:
+                  schema:
+                    oneOf:
+                      - type: object
+                        properties:
+                          status:
+                            type: string
+                          example:
+                            count: 3
+                            next: null
+                            previous: null
+                            results:
+                              - id: 147
+                                name: "Пивное пузо"
+                                customer: { id: 958, name: "Яндекс.Практикум" }
+                                type: 2
+                                duration_count": 7
+                                logo_url: "-"
+                                is_viewed: false
+                                response_made: false
+                              - id: 140
+                                name: "PROJECT PROJECT PROJECT PROJECT"
+                                customer: { id: 320, name: "peppe" }
+                                type: 4
+                                duration_count: 7
+                                logo_url: "-"
+                                is_viewed: false
+                                response_made: false
+                              - id: 193
+                                name: "Проект для спока"
+                                customer: { id: 380, name: "Яндекс практикум" }
+                                type: 4
+                                duration_count: 7
+                                logo_url: "http://51.250.71.86:6001/django_media/hrvacancies/1_9m6aGwf.jpg"
+                                is_viewed: true
+                                response_made: false
+                      - type: object
+                        properties:
+                          status:
+                            type: string
+                          example:
+                            count: 0
+                            next: null
+                            previous: null
+                            results: []
+
+
+      
+      /api/v1/directory/workshop/project-direction:
+        get:
+          tags:   
+            - workshop  
+          description: Получение информации о направлениях проектов в мастерской
+          responses:
+            '200':
+              description: Список проектов успешно показан
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      status:
+                        type: string
+                  example:
+                    pk: 1
+                    title: "Анализ данных и создание дашборда"   
+
+      /api/v1/directory/workshop/project-type:
+        get:
+          tags:   
+            - workshop  
+          description: Получение информации о типах проектов в мастерской
+          responses:
+            '200':
+              description: Список проектов успешно показан
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      status:
+                        type: string
+                  example:
+                    pk: 2
+                    title: "Хакатон"
+                    image: null
+                    info: "Соревновательный формат, в котором несколько команд решают одну задачу, в конце все команды получают ревью и определяется победитель. Эксперты и консультанты помогают с реализацией."
+        
+      /api/v1/workshop/project/{id}/show_detail_for_student:
+        get:
+          tags:   
+            - workshop  
+          description: Получение подробной информации о проекте с идентификатором {id}, доступной студенту
+          responses:
+            '200':
+              description: Подробная информация успешно показана
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      status:
+                        type: string
+                  example:
+                    id: 147
+                    name: "Пивное пузо"
+                    project_manager: null
+                    time_load: null
+                    scope: 4
+                    comment: "Отращиваем пивные пузы, чтобы потом победить в конкурсе мокрых маек на корпоративе HR-центра"
+                    customer:
+                        id: 958
+                        name: "Яндекс.Практикум"
+                    type: 2
+                    published_at: "2024-01-09T21:05:34.373386Z"
+                    logo_url: "-"
+                    big_cover": null
+                    closed_at: null
+                    all_positions_count: 6
+                    about_project: null
+                    technical_documentation_url: null
+                    direction: 3
+                    duration_count: 7
+                    is_viewed: true
+                    response_made: false
+                    specialization_requirements: "Должны пить пиво и жить красиво" 
+            '401':
+              description: Данные не предоставлены
+              content:
+                application/json:
+                  schema:
+                    properties:
+                      status:
+                        type: string
+                  example:
+                    detail: "Учетные данные не были предоставлены"
+
+        
+      /api/v1/workshop/responses:
+        post:
+          tags:   
+            - workshop  
+          description: Отправка ответов на вопросы или задания, связанные с проектом в мастерской
+          responses:
+              '201':
+                description: Ответы успешно отправлены 
+                content:
+                  application/json:
+                    schema:
+                      properties:
+                        status:
+                          type: string
+                    example:
+                      project: 140
+                      comment: "смитьтиавапролорпавапро"
+                      spend_time: 4
+
 components:
   schemas:
 
@@ -2994,3 +3289,28 @@ components:
         status:
           type: string
           description: Статус отпуска (pending, approved, rejected) 
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        customer:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        type:
+          type: integer
+        duration_count:
+          type: integer
+        logo_url:
+          type: string
+        is_viewed:
+          type: boolean
+        response_made:
+          type: boolean
