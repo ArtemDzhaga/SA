@@ -1,0 +1,787 @@
+openapi: 3.0.3
+
+info:
+  title: User Profile API
+  description: >
+    REST API для управления пользователями и профилями платформы «Ритм».
+    API поддерживает регистрацию пользователя, вход, выход, OAuth-авторизацию,
+    просмотр профиля, редактирование профиля и удаление аккаунта.
+  version: 1.0.0
+  contact:
+    name: Rhythm Production
+    email: devteam@ritm.app
+
+servers:
+  - url: https://api.ritm.app
+    description: Основной API-сервер платформы «Ритм»
+
+tags:
+  - name: Auth
+    description: Операции регистрации, входа, выхода и обновления токена
+  - name: Profile
+    description: Операции просмотра и редактирования профиля пользователя
+  - name: User
+    description: Операции управления пользователем и аккаунтом
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Регистрация пользователя
+      description: >
+        Создаёт новую учётную запись пользователя по email и паролю.
+        После успешной регистрации система создаёт профиль пользователя
+        и возвращает access token для работы с API.
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        description: Данные для создания учётной записи пользователя
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+            example:
+              email: ivan.petrov@example.com
+              password: StrongPassword123!
+              displayName: Иван Петров
+      responses:
+        "201":
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+              example:
+                userId: usr_1001
+                profile:
+                  userId: usr_1001
+                  displayName: Иван Петров
+                  description: null
+                  profilePhotoId: null
+                  privacyLevel: PUBLIC
+                  createdAt: "2026-05-01T10:00:00Z"
+                  updatedAt: "2026-05-01T10:00:00Z"
+                accessToken: access_token_eyJhbGciOi
+                refreshToken: refresh_token_8f7a91
+                tokenType: Bearer
+                expiresIn: 3600
+        "400":
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: VALIDATION_ERROR
+                message: Email или пароль заполнены некорректно
+                details:
+                  - field: email
+                    issue: Email должен быть в корректном формате
+        "409":
+          description: Пользователь с таким email уже существует
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: USER_ALREADY_EXISTS
+                message: Пользователь с email ivan.petrov@example.com уже зарегистрирован
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Вход пользователя
+      description: >
+        Проверяет email и пароль пользователя. При успешной проверке
+        возвращает access token и refresh token.
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        description: Учётные данные пользователя
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              email: ivan.petrov@example.com
+              password: StrongPassword123!
+      responses:
+        "200":
+          description: Пользователь успешно вошёл в систему
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+              example:
+                userId: usr_1001
+                profile:
+                  userId: usr_1001
+                  displayName: Иван Петров
+                  description: Бегаю по утрам и готовлюсь к полумарафону
+                  profilePhotoId: photo_1001
+                  privacyLevel: PUBLIC
+                  createdAt: "2026-05-01T10:00:00Z"
+                  updatedAt: "2026-03-31T10:25:00Z"
+                accessToken: access_token_eyJhbGciOi
+                refreshToken: refresh_token_8f7a91
+                tokenType: Bearer
+                expiresIn: 3600
+        "400":
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: VALIDATION_ERROR
+                message: Не передан email или пароль
+        "401":
+          description: Неверный email или пароль
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: INVALID_CREDENTIALS
+                message: Неверный email или пароль
+
+  /api/v1/auth/oauth:
+    post:
+      tags:
+        - Auth
+      summary: Вход через OAuth-провайдера
+      description: >
+        Авторизует пользователя через внешнего OAuth-провайдера.
+        Используется для входа через Google, Apple или VK.
+        Если пользователь входит впервые, система создаёт учётную запись и профиль.
+      operationId: loginWithOAuth
+      security: []
+      requestBody:
+        required: true
+        description: Данные OAuth-авторизации
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthLoginRequest"
+            example:
+              provider: GOOGLE
+              providerToken: google_oauth_token_7f9a21
+      responses:
+        "200":
+          description: Пользователь успешно авторизован через OAuth
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+              example:
+                userId: usr_1002
+                profile:
+                  userId: usr_1002
+                  displayName: Иван Петров
+                  description: null
+                  profilePhotoId: null
+                  privacyLevel: PUBLIC
+                  createdAt: "2026-03-31T11:00:00Z"
+                  updatedAt: "2026-03-31T11:00:00Z"
+                accessToken: access_token_eyJhbGciOi_oauth
+                refreshToken: refresh_token_6aa127
+                tokenType: Bearer
+                expiresIn: 3600
+        "400":
+          description: Некорректный OAuth-запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: INVALID_OAUTH_REQUEST
+                message: Не указан OAuth-провайдер или токен провайдера
+        "401":
+          description: OAuth-токен не прошёл проверку
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: OAUTH_TOKEN_INVALID
+                message: OAuth-токен недействителен или истёк
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Обновление access token
+      description: >
+        Выпускает новый access token на основании действующего refresh token.
+        Используется мобильным или веб-клиентом для продолжения пользовательской сессии.
+      operationId: refreshAccessToken
+      security: []
+      requestBody:
+        required: true
+        description: Refresh token пользователя
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+            example:
+              refreshToken: refresh_token_8f7a91
+      responses:
+        "200":
+          description: Access token успешно обновлён
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+              example:
+                accessToken: access_token_eyJhbGciOi_new
+                refreshToken: refresh_token_8f7a91
+                tokenType: Bearer
+                expiresIn: 3600
+        "401":
+          description: Refresh token недействителен или отозван
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: REFRESH_TOKEN_INVALID
+                message: Refresh token недействителен или был отозван
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Выход пользователя
+      description: >
+        Завершает пользовательскую сессию и отзывает refresh token.
+        После выполнения операции пользователь должен заново пройти авторизацию.
+      operationId: logoutUser
+      requestBody:
+        required: true
+        description: Refresh token, который нужно отозвать
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+            example:
+              refreshToken: refresh_token_8f7a91
+      responses:
+        "204":
+          description: Пользователь успешно вышел из системы
+        "401":
+          description: Пользователь не авторизован или токен недействителен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: UNAUTHORIZED
+                message: Требуется действующий access token
+
+  /api/v1/users/{userId}/profile:
+    get:
+      tags:
+        - Profile
+      summary: Просмотр профиля пользователя
+      description: >
+        Возвращает профиль пользователя по его идентификатору.
+        Может использоваться для просмотра собственного профиля или публичного профиля другого пользователя.
+        Состав возвращаемых данных зависит от уровня приватности профиля.
+      operationId: getUserProfile
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+      responses:
+        "200":
+          description: Профиль пользователя найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+              example:
+                userId: usr_1001
+                displayName: Иван Петров
+                description: Бегаю по утрам и готовлюсь к полумарафону
+                profilePhotoId: photo_1001
+                privacyLevel: PUBLIC
+                createdAt: "2026-05-01T10:00:00Z"
+                updatedAt: "2026-03-31T10:25:00Z"
+        "401":
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: UNAUTHORIZED
+                message: Требуется действующий access token
+        "403":
+          description: Недостаточно прав для просмотра профиля
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: PROFILE_ACCESS_DENIED
+                message: Профиль пользователя недоступен из-за настроек приватности
+        "404":
+          description: Профиль пользователя не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: PROFILE_NOT_FOUND
+                message: Профиль пользователя usr_1001 не найден
+
+    patch:
+      tags:
+        - Profile
+      summary: Редактирование профиля пользователя
+      description: >
+        Обновляет данные профиля пользователя: отображаемое имя, описание,
+        идентификатор фото профиля и уровень приватности.
+        Операция доступна только владельцу профиля.
+      operationId: updateUserProfile
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+      requestBody:
+        required: true
+        description: Данные профиля, которые нужно изменить
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+            example:
+              displayName: Иван Петров
+              description: Бег, велосипед и подготовка к стартам
+              profilePhotoId: photo_1001
+              privacyLevel: FRIENDS_ONLY
+      responses:
+        "200":
+          description: Профиль успешно обновлён
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+              example:
+                userId: usr_1001
+                displayName: Иван Петров
+                description: Бег, велосипед и подготовка к стартам
+                profilePhotoId: photo_1001
+                privacyLevel: FRIENDS_ONLY
+                createdAt: "2026-05-01T10:00:00Z"
+                updatedAt: "2026-03-31T10:25:00Z"
+        "400":
+          description: Некорректные данные профиля
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: VALIDATION_ERROR
+                message: Имя пользователя не должно быть пустым
+                details:
+                  - field: displayName
+                    issue: Значение должно содержать от 2 до 80 символов
+        "401":
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: UNAUTHORIZED
+                message: Требуется действующий access token
+        "403":
+          description: Пользователь не может редактировать чужой профиль
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: PROFILE_UPDATE_FORBIDDEN
+                message: Редактирование доступно только владельцу профиля
+        "404":
+          description: Профиль пользователя не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: PROFILE_NOT_FOUND
+                message: Профиль пользователя usr_1001 не найден
+
+  /api/v1/users/{userId}:
+    delete:
+      tags:
+        - User
+      summary: Удаление аккаунта пользователя
+      description: >
+        Запускает удаление аккаунта пользователя и связанных с ним данных.
+        Операция выполняется с учётом требований GDPR и ФЗ-152.
+        Так как удаление может затрагивать несколько доменных областей,
+        система возвращает статус 202 Accepted.
+      operationId: deleteUserAccount
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+      responses:
+        "202":
+          description: Запрос на удаление аккаунта принят
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeletionResponse"
+              example:
+                userId: usr_1001
+                deletionStatus: SCHEDULED
+                requestedAt: "2026-03-31T12:00:00Z"
+                message: Удаление аккаунта и связанных данных запланировано
+        "401":
+          description: Пользователь не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: UNAUTHORIZED
+                message: Требуется действующий access token
+        "403":
+          description: Пользователь не может удалить чужой аккаунт
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: ACCOUNT_DELETE_FORBIDDEN
+                message: Удаление доступно только владельцу аккаунта
+        "404":
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: USER_NOT_FOUND
+                message: Пользователь usr_1001 не найден
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Access token пользователя, полученный после регистрации,
+        входа или OAuth-авторизации.
+
+  parameters:
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      description: Уникальный идентификатор пользователя
+      schema:
+        type: string
+        example: usr_1001
+
+  schemas:
+
+    RegisterRequest:
+      type: object
+      description: Запрос на регистрацию пользователя
+      required:
+        - email
+        - password
+        - displayName
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email пользователя, используемый для входа
+          example: ivan.petrov@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: Пароль пользователя
+          example: StrongPassword123!
+        displayName:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: Отображаемое имя пользователя в системе
+          example: Иван Петров
+
+    LoginRequest:
+      type: object
+      description: Запрос на вход пользователя по email и паролю
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+          example: ivan.petrov@example.com
+        password:
+          type: string
+          format: password
+          description: Пароль пользователя
+          example: StrongPassword123!
+
+    OAuthLoginRequest:
+      type: object
+      description: Запрос на вход через OAuth-провайдера
+      required:
+        - provider
+        - providerToken
+      properties:
+        provider:
+          type: string
+          description: Внешний OAuth-провайдер
+          enum:
+            - GOOGLE
+            - APPLE
+            - VK
+          example: GOOGLE
+        providerToken:
+          type: string
+          description: Токен, полученный от внешнего OAuth-провайдера
+          example: google_oauth_token_7f9a21
+
+    RefreshTokenRequest:
+      type: object
+      description: Запрос на обновление access token
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token пользователя
+          example: refresh_token_8f7a91
+
+    LogoutRequest:
+      type: object
+      description: Запрос на выход пользователя из системы
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token, который должен быть отозван
+          example: refresh_token_8f7a91
+
+    AuthResponse:
+      type: object
+      description: Ответ после успешной регистрации или входа
+      required:
+        - userId
+        - profile
+        - accessToken
+        - refreshToken
+        - tokenType
+        - expiresIn
+      properties:
+        userId:
+          type: string
+          description: Уникальный идентификатор пользователя
+          example: usr_1001
+        profile:
+          $ref: "#/components/schemas/UserProfile"
+        accessToken:
+          type: string
+          description: Access token для обращения к защищённым методам API
+          example: access_token_eyJhbGciOi
+        refreshToken:
+          type: string
+          description: Refresh token для обновления access token
+          example: refresh_token_8f7a91
+        tokenType:
+          type: string
+          description: Тип токена
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Время жизни access token в секундах
+          example: 3600
+
+    TokenResponse:
+      type: object
+      description: Ответ после обновления access token
+      required:
+        - accessToken
+        - refreshToken
+        - tokenType
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          description: Новый access token
+          example: access_token_eyJhbGciOi_new
+        refreshToken:
+          type: string
+          description: Действующий refresh token
+          example: refresh_token_8f7a91
+        tokenType:
+          type: string
+          description: Тип токена
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Время жизни access token в секундах
+          example: 3600
+
+    UserProfile:
+      type: object
+      description: Профиль пользователя платформы «Ритм»
+      required:
+        - userId
+        - displayName
+        - privacyLevel
+        - createdAt
+        - updatedAt
+      properties:
+        userId:
+          type: string
+          description: Уникальный идентификатор пользователя
+          example: usr_1001
+        displayName:
+          type: string
+          description: Отображаемое имя пользователя
+          example: Иван Петров
+        description:
+          type: string
+          nullable: true
+          description: Описание профиля пользователя
+          example: Бегаю по утрам и готовлюсь к полумарафону
+        profilePhotoId:
+          type: string
+          nullable: true
+          description: Идентификатор фото профиля в файловом хранилище
+          example: photo_1001
+        privacyLevel:
+          type: string
+          description: Уровень приватности профиля
+          enum:
+            - PUBLIC
+            - FRIENDS_ONLY
+            - PRIVATE
+          example: PUBLIC
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и время создания профиля
+          example: "2026-05-01T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Дата и время последнего изменения профиля
+          example: "2026-03-31T10:25:00Z"
+
+    UpdateProfileRequest:
+      type: object
+      description: Запрос на редактирование профиля пользователя
+      properties:
+        displayName:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: Новое отображаемое имя пользователя
+          example: Иван Петров
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Описание профиля пользователя
+          example: Бег, велосипед и подготовка к стартам
+        profilePhotoId:
+          type: string
+          nullable: true
+          description: Идентификатор фото профиля
+          example: photo_1001
+        privacyLevel:
+          type: string
+          description: Уровень приватности профиля
+          enum:
+            - PUBLIC
+            - FRIENDS_ONLY
+            - PRIVATE
+          example: FRIENDS_ONLY
+
+    AccountDeletionResponse:
+      type: object
+      description: Ответ на запрос удаления аккаунта
+      required:
+        - userId
+        - deletionStatus
+        - requestedAt
+        - message
+      properties:
+        userId:
+          type: string
+          description: Идентификатор пользователя
+          example: usr_1001
+        deletionStatus:
+          type: string
+          description: Статус удаления аккаунта
+          enum:
+            - SCHEDULED
+            - IN_PROGRESS
+            - COMPLETED
+          example: SCHEDULED
+        requestedAt:
+          type: string
+          format: date-time
+          description: Дата и время запроса на удаление аккаунта
+          example: "2026-03-31T12:00:00Z"
+        message:
+          type: string
+          description: Человекочитаемое описание результата
+          example: Удаление аккаунта и связанных данных запланировано
+
+    ErrorResponse:
+      type: object
+      description: Унифицированный ответ при ошибке
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Машиночитаемый код ошибки
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          description: Описание ошибки для клиента
+          example: Переданы некорректные данные
+        details:
+          type: array
+          description: Детали ошибки валидации
+          items:
+            $ref: "#/components/schemas/ErrorDetail"
+
+    ErrorDetail:
+      type: object
+      description: Детализация ошибки по конкретному полю
+      required:
+        - field
+        - issue
+      properties:
+        field:
+          type: string
+          description: Поле, в котором обнаружена ошибка
+          example: email
+        issue:
+          type: string
+          description: Описание проблемы
+          example: Email должен быть в корректном формате
